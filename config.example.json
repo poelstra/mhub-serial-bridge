@@ -1,0 +1,14 @@
+{
+    "ports": {
+        "/dev/serial/by-id/usb-Arduino_Srl_Arduino_Uno_75533353637351302041-if00": {
+            "node": "default",
+            "topicPrefix": "/dev/myarduino",
+            "delimiter": "\r\n"
+        }
+    },
+    "mhub": {
+        "url": "localhost:13900",
+        "user": "someuser",
+        "pass": "somepass"
+    }
+}

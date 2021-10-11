@@ -1,0 +1,25 @@
+{
+    "name": "mhub-serial-bridge",
+    "version": "1.0.0",
+    "description": "Connect any line-based serial port device to MHub",
+    "scripts": {
+        "build": "tsc",
+        "start": "node ./dist/index"
+    },
+    "author": "Martin Poelstra <martin@beryllium.net>",
+    "license": "MIT",
+    "devDependencies": {
+        "@types/node": "^16.9.4",
+        "@types/serialport": "^8.0.2",
+        "prettier": "^2.4.1",
+        "typescript": "^4.4.3"
+    },
+    "dependencies": {
+        "@types/debug": "^4.1.7",
+        "async-main": "^1.0.2",
+        "debug": "^4.3.2",
+        "mhub": "2.1.0",
+        "serialport": "^9.2.4",
+        "source-map-support": "^0.5.20"
+    }
+}
