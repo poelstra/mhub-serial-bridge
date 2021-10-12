@@ -34,13 +34,13 @@ const defaultOptions: Required<PickOptionals<BridgePortOptions>> = {
 };
 
 class Connection extends EventEmitter {
-    private _options: Required<BridgePortOptions>;
+    public options: Required<BridgePortOptions>;
     private _port: SerialPort;
     private _log: debug.Debugger;
 
     constructor(port: SerialPort, options: Required<BridgePortOptions>) {
         super();
-        this._options = options;
+        this.options = options;
         this._port = port;
         this._log = debug(
             `bridge:connection:${options.topicPrefix}@${options.node}`
@@ -88,8 +88,8 @@ class Connection extends EventEmitter {
         this._log(`start`);
         this.emit(
             "publish",
-            this._options.node,
-            `${this._options.topicPrefix}/state`,
+            this.options.node,
+            `${this.options.topicPrefix}/state`,
             "open"
         );
     }
@@ -103,7 +103,7 @@ class Connection extends EventEmitter {
             return;
         }
         this._log(`tx`, `${message}`);
-        const line = `${message}${this._options.delimiter}`;
+        const line = `${message}${this.options.delimiter}`;
         this._port.write(line);
     }
 
@@ -128,25 +128,6 @@ export class Bridge {
         this._hub.on("message", (message, subscriptionId) =>
             this._handleMessage(message, subscriptionId)
         );
-    }
-
-    private _handleConnect(client: MHubClient): void {
-        this._client = client;
-    }
-
-    private _handleDisconnect(): void {
-        this._client = undefined;
-        for (const [_prefix, entry] of this._connections) {
-            entry.destroy(new Error("MHub connection closed"));
-        }
-    }
-
-    private _handleMessage(message: Message, subscriptionId: string): void {
-        const entry = this._connections.get(subscriptionId);
-        if (!entry) {
-            return;
-        }
-        entry.dispatch(message.data);
     }
 
     public async attach(
@@ -186,6 +167,45 @@ export class Bridge {
         this._connections.set(options.topicPrefix, conn);
 
         conn.start();
+    }
+
+    public async shutdown(): Promise<void> {
+        const oldClient = this._client;
+        const oldConnections = [...this._connections.values()];
+
+        this._handleDisconnect();
+
+        if (oldClient) {
+            // We manually emit the state events here, because the
+            // event emitters of Connection don't allow waiting until
+            // the (async) publish is completed...
+            for (const conn of oldConnections) {
+                await oldClient.publish(
+                    conn.options.node,
+                    `${conn.options.topicPrefix}/state`,
+                    "close"
+                );
+            }
+        }
+    }
+
+    private _handleConnect(client: MHubClient): void {
+        this._client = client;
+    }
+
+    private _handleDisconnect(): void {
+        this._client = undefined;
+        for (const [_prefix, entry] of this._connections) {
+            entry.destroy(new Error("MHub connection closed"));
+        }
+    }
+
+    private _handleMessage(message: Message, subscriptionId: string): void {
+        const entry = this._connections.get(subscriptionId);
+        if (!entry) {
+            return;
+        }
+        entry.dispatch(message.data);
     }
 
     private _safePublish(

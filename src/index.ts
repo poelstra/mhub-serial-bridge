@@ -86,6 +86,14 @@ main(async () => {
         scanner.pause();
     });
 
+    process.on("SIGINT", async () => {
+        console.log("SIGINT received, shutting down...");
+        scanner.pause();
+        await bridge.shutdown();
+        console.log("Terminating with exit code 0.");
+        process.exit(0);
+    });
+
     // Start connecting to MHub, and automatically keep reconnecting
     main(async () => {
         console.log(`Connecting to MHub at ${config.mhub.url}...`);
