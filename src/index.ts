@@ -86,13 +86,15 @@ main(async () => {
         scanner.pause();
     });
 
-    process.on("SIGINT", async () => {
-        console.log("SIGINT received, shutting down...");
+    const shutdown = async (signal: string) => {
+        console.log(`${signal} received, shutting down...`);
         scanner.pause();
         await bridge.shutdown();
         console.log("Terminating with exit code 0.");
         process.exit(0);
-    });
+    };
+    process.on("SIGINT", () => shutdown("SIGINT"));
+    process.on("SIGTERM", () => shutdown("SIGTERM"));
 
     // Start connecting to MHub, and automatically keep reconnecting
     main(async () => {
