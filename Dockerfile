@@ -18,5 +18,5 @@ COPY --from=build /app/mhub-serial-bridge .
 COPY . .
 RUN pnpm run build
 
-ENTRYPOINT ["pnpm", "start", "--"]
+ENTRYPOINT ["node", "dist/index"]
 CMD []
