@@ -21,24 +21,39 @@ export interface BridgePortOptions {
 
     /**
      * Line delimiter.
-     * Defaults to `"\n"` if unset.
-     * Can be explicitly set to `undefined` to signal
-     * no parsing should be done on rx, and no delimiter
-     * should be appended on tx.
+     *
+     * When set to a string (e.g. "\r\n"), it will emit
+     * any complete lines (without the delimiter), and will
+     * automatically append the delimiter on transmission.
+     * Empty lines will be emitted as an empty string.
+     *
+     * When `undefined`, no parsing will be done, and any
+     * received data will be emitted as an array of byte
+     * values, and no delimiter will be appended to tx.
+     *
+     * Independent of the setting of delimiter, values
+     * can be written to tx as a string, or an array of
+     * byte values.
      */
-    delimiter?: string | undefined;
+    delimiter?: string;
+
+    /**
+     * Encoding to use for strings, defaults to UTF-8.
+     */
+    encoding?: BufferEncoding;
 }
 
-const defaultOptions: Required<PickOptionals<BridgePortOptions>> = {
-    delimiter: "\n",
+const defaultOptions: PickOptionals<BridgePortOptions> = {
+    delimiter: undefined,
+    encoding: "utf-8",
 };
 
 class Connection extends EventEmitter {
-    public options: Required<BridgePortOptions>;
+    public options: BridgePortOptions;
     private _port: SerialPort;
     private _log: debug.Debugger;
 
-    constructor(port: SerialPort, options: Required<BridgePortOptions>) {
+    constructor(port: SerialPort, options: BridgePortOptions) {
         super();
         this.options = options;
         this._port = port;
@@ -49,18 +64,22 @@ class Connection extends EventEmitter {
         const parsed = options.delimiter
             ? port.pipe(
                   new SerialPort.parsers.Readline({
+                      encoding: options.encoding,
                       delimiter: options.delimiter,
-                  })
+                      // Need to set objectMode in order to pass through
+                      // any empty lines as-is.
+                      objectMode: true,
+                  } as ConstructorParameters<typeof SerialPort.parsers.Readline>[0])
               )
             : port;
 
-        parsed.on("data", (line: string) => {
+        parsed.on("data", (line: Buffer | string) => {
             this._log(`rx`, line);
             this.emit(
                 "publish",
                 options.node,
                 `${options.topicPrefix}/rx`,
-                line
+                Buffer.isBuffer(line) ? line.toJSON().data : line
             );
         });
         port.once("error", (err: Error) => {
@@ -95,16 +114,43 @@ class Connection extends EventEmitter {
     }
 
     public dispatch(message: unknown): void {
-        if (typeof message !== "string") {
+        if (typeof message !== "string" && !Array.isArray(message)) {
             this._log(
                 "warning",
-                `invalid line received, expected string, got ${typeof message}`
+                `invalid line received, expected string or array, got ${typeof message}`
             );
             return;
         }
-        this._log(`tx`, `${message}`);
-        const line = `${message}${this.options.delimiter}`;
-        this._port.write(line);
+        if (
+            Array.isArray(message) &&
+            message.some(
+                (byte) =>
+                    typeof byte !== "number" || !(byte >= 0 && byte <= 255)
+            )
+        ) {
+            this._log(
+                "warning",
+                `invalid line received, array must only contain numbers in range [0..255]`
+            );
+            return;
+        }
+        let buffer =
+            typeof message === "string"
+                ? Buffer.from(message, this.options.encoding)
+                : Buffer.from(message);
+        if (this.options.delimiter !== undefined) {
+            buffer = Buffer.concat([
+                buffer,
+                Buffer.from(this.options.delimiter, this.options.encoding),
+            ]);
+        }
+        this._log(
+            `tx`,
+            Array.isArray(message) || this.options.delimiter === undefined
+                ? buffer
+                : message
+        );
+        this._port.write(buffer);
     }
 
     public destroy(_err?: Error): void {

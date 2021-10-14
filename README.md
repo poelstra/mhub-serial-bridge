@@ -19,6 +19,21 @@ an NPM package of it, too.
 -   Run `pnpm start` or `pnpm start -- /path/to/your/config.json` to start
 -   Optionally set `DEBUG=bridge:*` to enable verbose output.
 
+You'll need a running instance of MHub of course.
+You can then subscribe to each port's `.../rx` and `.../state` topics,
+and write lines (or array of bytes) to its `.../tx` topic.
+
+If you specify a delimiter for the port, it will automatically parse
+each line, stripping the delimiter (but still emitting any empty lines
+as-is). The delimiter is also always added to any string or array to
+be sent to the serial port.
+
+If you don't specify a delimiter, data will be emitted as an
+array of byte values as soon as each chunk comes in, and incoming
+strings or byte arrays will always be forwarded as-is. (Note:
+strings will first be decoded into an array of bytes according to
+the specified encoding, which defaults to UTF-8.)
+
 ## License
 
 MIT

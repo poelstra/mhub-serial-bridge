@@ -3,7 +3,12 @@
         "/dev/serial/by-id/usb-Arduino_Srl_Arduino_Uno_75533353637351302041-if00": {
             "node": "default",
             "topicPrefix": "/dev/myarduino",
-            "delimiter": "\r\n"
+            "delimiter": "\r\n",
+            "encoding": "utf8",
+            "baudRate": 115200,
+            "parity": "none",
+            "dataBits": 8,
+            "stopBits": 1
         }
     },
     "mhub": {
