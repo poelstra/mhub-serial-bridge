@@ -10,7 +10,6 @@
     "license": "MIT",
     "devDependencies": {
         "@types/node": "^16.9.4",
-        "@types/serialport": "^8.0.2",
         "prettier": "^2.4.1",
         "typescript": "^4.4.3"
     },
@@ -19,7 +18,7 @@
         "async-main": "^1.0.2",
         "debug": "^4.3.2",
         "mhub": "2.1.0",
-        "serialport": "^9.2.4",
+        "serialport": "^10.4.0",
         "source-map-support": "^0.5.20"
     }
 }

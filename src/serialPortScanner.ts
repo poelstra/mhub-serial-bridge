@@ -7,12 +7,13 @@
 
 import debug from "debug";
 import { promises as pfs } from "fs";
-import SerialPort from "serialport";
+import { SerialPort, SerialPortOpenOptions } from "serialport";
 import { InterruptibleSleep } from "./util";
 
 const log = debug("bridge:scanner");
 
-export interface SerialPortOptions extends SerialPort.OpenOptions {}
+export interface SerialPortOptions
+    extends Omit<SerialPortOpenOptions<any>, "path"> {}
 
 export interface SerialPortScannerOptions<
     PortOptions extends SerialPortOptions = SerialPortOptions
@@ -216,10 +217,13 @@ export class SerialPortScanner<PortOptions extends SerialPortOptions> {
         portOptions: PortOptions
     ): Promise<SerialPort> {
         return new Promise<SerialPort>((resolve, reject) => {
-            const port: SerialPort = new SerialPort(
-                comName,
-                { ...defaultSerialPortOptions, ...portOptions },
-                (err) => (err ? reject(err) : resolve(port))
+            const options: SerialPortOpenOptions<any> = {
+                ...defaultSerialPortOptions,
+                ...portOptions,
+                path: comName,
+            };
+            const port: SerialPort = new SerialPort(options, (err) =>
+                err ? reject(err) : resolve(port)
             );
         });
     }

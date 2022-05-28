@@ -1,6 +1,6 @@
 import debug from "debug";
 import MHubClient, { Headers, Message } from "mhub";
-import SerialPort from "serialport";
+import { ReadlineParser, SerialPort } from "serialport";
 import { EventEmitter } from "stream";
 import { Hub } from "./hub";
 import { PickOptionals } from "./util";
@@ -63,13 +63,13 @@ class Connection extends EventEmitter {
 
         const parsed = options.delimiter
             ? port.pipe(
-                  new SerialPort.parsers.Readline({
+                  new ReadlineParser({
                       encoding: options.encoding,
                       delimiter: options.delimiter,
                       // Need to set objectMode in order to pass through
                       // any empty lines as-is.
                       objectMode: true,
-                  } as ConstructorParameters<typeof SerialPort.parsers.Readline>[0])
+                  } as ConstructorParameters<typeof ReadlineParser>[0])
               )
             : port;
 
